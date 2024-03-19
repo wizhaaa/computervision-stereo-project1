@@ -1,5 +1,6 @@
 import numpy as np
-#==============No additional imports allowed ================================#
+# ==============No additional imports allowed ================================#
+
 
 def get_ncc_descriptors(img, patchsize):
     '''
@@ -20,14 +21,15 @@ def get_ncc_descriptors(img, patchsize):
     (5) store it in the (i,j)th location in the output
 
     If the window extends past the image boundary, zero out the descriptor
-    
+
     If the norm of the vector is <1e-6 before normalizing, zero out the vector.
 
     '''
     height, width, channels = img.shape
     half_patch = patchsize // 2
-    normalized = np.zeros((height, width, channels * patchsize**2), dtype=np.float32)
-    
+    normalized = np.zeros(
+        (height, width, channels * patchsize**2), dtype=np.float32)
+
     for i in range(height):
         for j in range(width):
             # Compute patch boundaries
@@ -35,26 +37,26 @@ def get_ncc_descriptors(img, patchsize):
             bottom = min(height, i + half_patch + 1)
             left = max(0, j - half_patch)
             right = min(width, j + half_patch + 1)
-            
+
             # Extract patch
             patch = img[top:bottom, left:right, :]
-            
+
             if patch.shape[0] != patchsize or patch.shape[1] != patchsize:
                 normalized[i, j, :] = 0
             else:
                 # Subtract mean for every channel
                 patch_mean = np.mean(patch, axis=(0, 1))
                 patch -= patch_mean
-                
+
                 # Flatten and normalize
                 patch_flat = patch.reshape(-1)
                 patch_norm = np.linalg.norm(patch_flat)
-                
+
                 if patch_norm < 1e-6:
                     normalized[i, j, :] = 0
                 else:
                     normalized[i, j, :] = patch_flat / patch_norm
-                    
+
     return normalized
 
 
@@ -86,8 +88,8 @@ def compute_ncc_vol(img_right, img_left, patchsize, dmax):
 
     for d in range(dmax):
         for i in range(height):
-            for j in range(width):
-                if j + d < width: 
+            for j in range(width-d):
+                if j + d < width:
                     # Extract patches centered at (i, j) and (i, j+d)
                     patch_right = descriptors_right[i, j, :]
                     patch_left = descriptors_left[i, j + d, :]
@@ -96,6 +98,7 @@ def compute_ncc_vol(img_right, img_left, patchsize, dmax):
                     ncc_vol[d, i, j] = np.dot(patch_right, patch_left)
 
     return ncc_vol
+
 
 def get_disparity(ncc_vol):
     '''
@@ -107,19 +110,13 @@ def get_disparity(ncc_vol):
 
     the chosen disparity for each pixel should be the one with the largest score for that pixel
     '''
-    dmax, height, width = ncc_vol.shape 
-    disparity = np.zeros((height, width), dtype=int) 
-    
+    dmax, height, width = ncc_vol.shape
+    disparity = np.zeros((height, width), dtype=int)
+
     # find the disparity with maximum score for each pixel
-    for i in range(height): 
-        for j in range(width): 
+    for i in range(height):
+        for j in range(width):
             max_score_index = np.argmax(ncc_vol[:, i, j])
             disparity[i, j] = max_score_index
-    
+
     return disparity
-
-
-
-
-
-    
